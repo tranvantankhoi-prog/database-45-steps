@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2026-02-20
  * 
- * @copyright Copyright (c) 2026
+ * @copyright Copyright (c) under MIT license, 2026
  * 
  */
 
