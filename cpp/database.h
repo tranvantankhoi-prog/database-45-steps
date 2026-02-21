@@ -2,7 +2,7 @@
  * @file database.h
  * @author Tran Van Tan Khoi (tranvantankhoi@gmail.com)
  * @brief A basic in-memory Key-Value database implementation
- * @version 0.1
+ * @version 0.2.0
  * @date 2026-02-20
  * 
  * @copyright Copyright (c) under MIT license, 2026
@@ -17,6 +17,9 @@
 #include <system_error>     // std::error_code
 #include <cstddef>          // std::byte
 #include <optional>         // std::optional
+#include <algorithm>        // std::copy
+#include <cstdint>          // uint32_t
+#include <iostream>         // std::istream
 
 /**
  * @brief Alises for common types
@@ -106,5 +109,54 @@ class KV {
      */
     std::pair<bool, error> Del(const bytes &key) {
         return { mem.erase(key) > 0, {} };
+    }
+};
+
+
+struct Entry {
+    bytes key;
+    bytes val;
+
+    bytes Encode() const {
+        uint32_t klen = static_cast<uint32_t>(key.size());
+        uint32_t vlen = static_cast<uint32_t>(val.size());
+
+        bytes buf(8 + klen + vlen);
+
+        buf[0] = static_cast<std::byte>(klen & 0xFF);
+        buf[1] = static_cast<std::byte>((klen >> 8) & 0xFF);
+        buf[2] = static_cast<std::byte>((klen >> 16) & 0xFF);
+        buf[3] = static_cast<std::byte>((klen >> 24) & 0xFF);
+
+        buf[4] = static_cast<std::byte>(vlen & 0xFF);
+        buf[5] = static_cast<std::byte>((vlen >> 8) & 0xFF);
+        buf[6] = static_cast<std::byte>((vlen >> 16) & 0xFF);
+        buf[7] = static_cast<std::byte>((vlen >> 24) & 0xFF);
+
+        std::copy(key.begin(), key.end(), buf.begin() + 8);
+        std::copy(val.begin(), val.end(), buf.begin() + 8 + klen);
+
+        return buf;
+    }
+
+    error Decode(std::istream &is) {
+        uint8_t header[8];
+        if (!is.read(reinterpret_cast<char *>(header), 8)) {
+            return std::make_error_code(std::errc::io_error);
+        }
+
+        uint32_t klen = header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
+        uint32_t vlen = header[4] | (header[5] << 8) | (header[6] << 16) | (header[7] << 24);
+
+        key.resize(klen);
+        val.resize(vlen);
+
+        if (!is.read(reinterpret_cast<char *>(key.data()), klen))
+            return std::make_error_code(std::errc::io_error);
+        
+        if (!is.read(reinterpret_cast<char *>(val.data()), vlen))
+            return std::make_error_code(std::errc::io_error);
+        
+        return {};
     }
 };
