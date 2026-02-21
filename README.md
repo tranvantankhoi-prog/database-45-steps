@@ -23,12 +23,13 @@ You only need the `database.h` header. If you plan to run commands within this r
 
 - A C++17 compatible GCC compiler.
 - `make`.
-- Google's testing library `libgtest-dev`.
+- Google's testing library `gtest` (`libgtest-dev`).
 - `Doxygen` to generate documentation.
+- `Valgrind` to test for memory safety.
 
 An example Bash command:
 
-    sudo apt install build-essential libgtest-dev doxygen
+    sudo apt install build-essential libgtest-dev doxygen valgrind
 
 ### Testing
 
@@ -40,7 +41,11 @@ Run:
 
     make test
 
-Reset (remove the executable):
+Test for memory leaks:
+
+    make memcheck
+
+Reset:
 
     make clean
 
@@ -59,6 +64,8 @@ With `cpp/` as root:
 - `Makefile`: Build automation for testing and documentation.
 - `Doxyfile`: Configuration for Doxygen.
 
+Unused files: `database.cpp` and `main.cpp`.
+
 ## License
 
 [MIT License](https://choosealicense.com/licenses/mit/).
@@ -67,4 +74,5 @@ With `cpp/` as root:
 
 ### Log-based KV
 
-2026-02-20: Project created. Added KV interface.
+- 2026-02-21: Added data serialization.
+- 2026-02-20: Project created. Added KV interface.
