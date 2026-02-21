@@ -21,9 +21,8 @@
 #include <cstdint>          // uint32_t
 #include <iostream>         // std::istream
 
-/**
- * @brief Alises for common types
- */
+/** Aliases for common types */
+
 using bytes = std::vector<std::byte>;
 using error = std::error_code;
 using std::string;
@@ -113,38 +112,57 @@ class KV {
 };
 
 
+/**
+ * @brief Represents a single database entry for serialization
+ * 
+ */
 struct Entry {
     bytes key;
     bytes val;
 
+    /**
+     * @brief Serializes the entry into a byte buffer.
+     * The format is [4-byte klen | 4-byte vlen | key payload | value payload].
+     * @return bytes containing the encoded entry.
+     */
     bytes Encode() const {
         uint32_t klen = static_cast<uint32_t>(key.size());
         uint32_t vlen = static_cast<uint32_t>(val.size());
 
         bytes buf(8 + klen + vlen);
 
+        // Packing `klen` into buffer in Little Endian
         buf[0] = static_cast<std::byte>(klen & 0xFF);
         buf[1] = static_cast<std::byte>((klen >> 8) & 0xFF);
         buf[2] = static_cast<std::byte>((klen >> 16) & 0xFF);
         buf[3] = static_cast<std::byte>((klen >> 24) & 0xFF);
 
+        // Packing 'vlen' into buffer in Little Endian
         buf[4] = static_cast<std::byte>(vlen & 0xFF);
         buf[5] = static_cast<std::byte>((vlen >> 8) & 0xFF);
         buf[6] = static_cast<std::byte>((vlen >> 16) & 0xFF);
         buf[7] = static_cast<std::byte>((vlen >> 24) & 0xFF);
 
+        // Copying key and value data
         std::copy(key.begin(), key.end(), buf.begin() + 8);
         std::copy(val.begin(), val.end(), buf.begin() + 8 + klen);
 
         return buf;
     }
 
+    /**
+     * @brief Deserializes an entry from a stream.
+     * 
+     * @param `is` The input stream
+     * @return An error if reading fails.
+     */
     error Decode(std::istream &is) {
         uint8_t header[8];
         if (!is.read(reinterpret_cast<char *>(header), 8)) {
             return std::make_error_code(std::errc::io_error);
         }
 
+        // Unpacking lengths
         uint32_t klen = header[0] | (header[1] << 8) | (header[2] << 16) | (header[3] << 24);
         uint32_t vlen = header[4] | (header[5] << 8) | (header[6] << 16) | (header[7] << 24);
 
